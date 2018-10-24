@@ -1,0 +1,15 @@
+{
+  "name": "skyway-gateway",
+  "version": "0.0.6",
+  "description": "SkyWay GateWay SDK(Unoficial) for Node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["SkyWay","WebRTC","Raspberry Pi","IoT","Video"],
+  "author": "n0bisuke",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.0"
+  }
+}
