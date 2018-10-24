@@ -1,22 +1,72 @@
 const axios = require('axios')
+const util = require('util');
 const exec = require('child_process').exec;
+const execAsync = util.promisify(require('child_process').exec);
+const dgram = require('dgram');
 
 class SkyWay{
-    constructor(apikey, peer_id, targetHost = 'http://127.0.0.1:8000', domain = `localhost`){
-        this.peer_id = peer_id
-        this.domain = domain
-        this.apikey = apikey
+    constructor(options){
+        this.apikey = options.apikey
+        this.peer_id = options.peer_id || process.argv[2]
+        this.domain = options.domain || 'localhost'
         this.peer_token = ''
         this.video_id = ''
         this.data_id = ''
         this.cmd = ''
         this.axios = axios.create({
-            baseURL: targetHost
+            baseURL: options.targetHost || `http://127.0.0.1:8000`
+        });
+        this.udp = {
+            host: '0.0.0.0',
+            port: 10000
+        }
+        this.flag = {
+            media: true
+        }
+    }
+
+    //Install or Start
+    init(SAVEPATH = './.skyway'){     
+        const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.2/gateway_linux_arm`;
+        let errorFlag = false;        
+        console.log('Starting Gateway...')
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if(!errorFlag){
+                    console.log('Started. Listen Connections...');
+                    resolve();
+                }
+            },1000);
+            
+            exec(`${SAVEPATH}/gateway_linux_arm`, (error, stdout, stderr) => {
+                if (!error) console.log('Started. Listen Connections...');
+                console.log(stderr);
+                errorFlag = true;
+                (async () => {
+                    console.log(`--[Start Install Gateway]`);
+                    await execAsync(`rm -rf ${SAVEPATH}`);
+                    await execAsync(`mkdir ${SAVEPATH}`);
+                    console.log('----make dir')
+                    console.log('----gateway downloading...')
+                    await execAsync(`curl -L -o ${SAVEPATH}/gateway_linux_arm --create-dirs ${DL_LINK}`);
+                    console.log('----gateway downloaded')
+                    await execAsync(`chmod +x ${SAVEPATH}/gateway_linux_arm`);
+                    console.log('----chmod')
+                    console.log(`--[Install done]`);
+                    this.init();
+                })();
+            });
         });
     }
 
-    async start() {
+    async start(options = {media: true}) {
+        if(!options.media) this.flag.media = options.media;
         await this.create_peer();
+    }
+
+    async dataListen(func){
+        const sock = dgram.createSocket("udp4", func);
+        sock.bind(this.udp.port, this.udp.host);
     }
 
     async create_peer() {
@@ -122,7 +172,7 @@ class SkyWay{
             console.log(res.data.event);
             if(res.data.event === 'OPEN'){
                 this.open();
-            }else if(res.data.event === 'CALL'){
+            }else if(res.data.event === 'CALL' && this.flag.media){
                 this.answer(res.data.call_params.media_connection_id, this.video_id)
                 exec(this.cmd, (err, stdout, stderr) => {
                     if (err) { console.log(err); }
@@ -131,7 +181,7 @@ class SkyWay{
             }
             else if(res.data.event === 'CONNECTION'){
                 const data_connection_id = res.data.data_params.data_connection_id;
-                this.set_data_redirect(data_connection_id, this.data_id, "0.0.0.0", 10000)
+                this.set_data_redirect(data_connection_id, this.data_id, this.udp.host, this.udp.port)
             }
             this.longPoll();
         })
