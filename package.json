@@ -1,6 +1,6 @@
 {
   "name": "skyway-gateway",
-  "version": "0.0.42",
+  "version": "0.1.0",
   "description": "SkyWay GateWay SDK(Unoficial) for Node.js",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,8 @@
     "axios": "^0.18.0"
   },
   "bin": {
-    "skyway-init": "bin/skywayinit.js"
+    "skyway-init": "bin/skywayinit.js",
+    "skywayinit": "bin/install.sh"
   },
   "bugs": {
     "url": "https://github.com/n0bisuke/skyway-webrtc-gateway-sdk-node.js/issues"

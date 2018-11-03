@@ -7,8 +7,8 @@ const dgram = require('dgram');
 class SkyWay{
     constructor(options){
         this.apikey = options.apikey
-        this.peer_id = options.peer_id || process.argv[2]
         this.domain = options.domain || 'localhost'
+        this.peer_id = options.peer_id || process.argv[2]
         this.peer_token = ''
         this.video_id = ''
         this.data_id = ''
@@ -166,6 +166,15 @@ class SkyWay{
         } 
     }
 
+    async close_peer(){
+        try {
+            const res = await this.axios.delete(`/peers/${this.peer_id}?token=${this.peer_token}`);
+            return res.data;   
+        } catch (error) {
+            
+        }
+    }
+
     longPoll () {
         this.axios.get(`/peers/${this.peer_id}/events?token=${this.peer_token}`)
         .then(res => {
@@ -182,6 +191,15 @@ class SkyWay{
             else if(res.data.event === 'CONNECTION'){
                 const data_connection_id = res.data.data_params.data_connection_id;
                 this.set_data_redirect(data_connection_id, this.data_id, this.udp.host, this.udp.port)
+            }
+            else if(res.data.event === 'STREAM'){
+                
+            }
+            else if(res.data.event === 'CLOSE'){
+
+            }
+            else if(res.data.event === 'ERROR'){
+                
             }
             this.longPoll();
         })
