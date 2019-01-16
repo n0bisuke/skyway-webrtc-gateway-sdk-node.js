@@ -11,16 +11,24 @@ Unoficial Node.js SDK for [skyway-webrtc-gateway](https://github.com/skyway/skyw
 ## Required
 
 ```
-$ sudo apt install autoconf automake libtool
-$ sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+$ sudo apt update
+$ sudo apt install -y autoconf automake libtool
+$ sudo apt install -y gstreamer1.0-tools gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 ```
 
 ```
-$ git clone git@github.com:thaytan/gst-rpicamsrc.git
-$ cd gst-rpicamsrc
+$ wget https://github.com/thaytan/gst-rpicamsrc/archive/master.zip
+$ unzip master.zip
+$ cd gst-rpicamsrc-master
 $ ./autogen.sh --prefix=/usr --libdir=/usr/lib/arm-linux-gnueabihf/
 $ make
 $ sudo make install
+```
+
+```
+$ cd ../
+$ rm master.zip
+$ rm -rf gst-rpicamsrc-master
 ```
 
 ## Install
