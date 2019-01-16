@@ -27,7 +27,7 @@ class SkyWay{
 
     //Install or Start
     init(SAVEPATH = './.skyway'){     
-        const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.2/gateway_linux_arm`;
+        const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm`;
         let errorFlag = false;        
         console.log('Starting Gateway...')
         return new Promise((resolve, reject) => {

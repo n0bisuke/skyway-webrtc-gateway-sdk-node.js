@@ -146,6 +146,10 @@ frontend sample
 </html>
 ```
 
+```
+python -m SimpleHTTPServer 8080
+```
+
 * use data channel
 
 ```js
