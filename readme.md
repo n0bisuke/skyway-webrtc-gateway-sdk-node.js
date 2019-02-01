@@ -37,12 +37,6 @@ $ rm -rf gst-rpicamsrc-master
 $ npm i skyway-gateway
 ```
 
-```
-$ node_modules/.bin/skyway-init
-```
-
-> GET GateWay
-
 ## Exsample
 
 ```js
