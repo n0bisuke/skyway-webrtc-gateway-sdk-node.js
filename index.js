@@ -107,7 +107,8 @@ class SkyWay{
             const res = await this.axios.delete(`/peers/${this.peer_id}?token=${this.peer_token}`);
             return res.data;   
         } catch (error) {
-            console.log(error);
+            console.log(error.response.data.command_type);
+            console.log(error.response.data.params);
         }
     }
 
@@ -176,9 +177,9 @@ class SkyWay{
         
         //media
         try {
-            // if(this.video_id !== '') return; //既にvideo_idがあれば新規ではcreate_media()しない
             res = await this.create_media(true);
             this.video_id = res.media_id;
+            // this.video_id = (this.video_id) ? this.video_id : res.media_id;
             console.log(`[${res.port}]`);
             this.cmd = `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false`;                
         } catch (error) {
@@ -224,6 +225,8 @@ class SkyWay{
             return res.data;
         } catch (error) {
             console.log('/////');
+            console.log(error);
+            console.log('/////');
             console.log(error.response.status);
             console.log(error.response.config.data);
             console.log(error.response.data.command_type);
@@ -241,11 +244,15 @@ class SkyWay{
             console.log(`MEDIA_EVENT: ${res.data.event}`);
             if(res.data.event === 'CLOSE'){
                 console.log('---close process 1---');
-                await this.close_media_connection(media_connection_id);
+                const { stdout, stderr } = await execAsync('killall gst-launch-1.0');
+                console.log('stdout:', stdout);
+                console.log('stderr:', stderr);
+                
                 console.log('---close process 2---');
-                await this.close_peer();
+                await this.close_media_connection(media_connection_id);
+                // await this.close_peer();
                 console.log('---close process 3---');
-                await this._create_peer();
+                // await this._create_peer();
                 console.log('---close process 4---');
                 await this.open();
             }
@@ -263,13 +270,12 @@ class SkyWay{
             if(res.data.event === 'OPEN') await this.open();
             
             if(res.data.event === 'CALL' && this.flag.media){
-                this.mc_id = (this.mc_id === '') ? res.data.call_params.media_connection_id : this.mc_id;
+                // this.mc_id = (this.mc_id === '') ? res.data.call_params.media_connection_id : this.mc_id;
                 try {
-                    await this.answer(this.mc_id, this.video_id);
+                    await this.answer(res.data.call_params.media_connection_id, this.video_id);
                 } catch (error)  {
-                    console.log('--bug---')
                     console.log(error);
-                    await this._watchPeer(); //
+                    await this._watchPeer();
                     return;   
                 }
                 exec(this.cmd, (err, stdout, stderr) => {
