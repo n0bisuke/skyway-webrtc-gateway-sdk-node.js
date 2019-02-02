@@ -29,51 +29,12 @@ class SkyWay{
     }
 
     //GateWay Start WIP
-    startGateWay(SWGW_PATH = './.skyway'){
+    startGateWay(SWGW_PATH = '~/.skyway'){
         exec(`${SWGW_PATH}/gateway_linux_arm`, (error, stdout, stderr) => {
             //ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    console.log('Started. Listen Connections...');
-                    resolve();
-                },2000);
-            });
+            return new Promise((resolve, reject) => setTimeout(() => resolve(),2000));
         });
     }
-
-    // async init(SAVEPATH = './.skyway'){
-    //     const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm`;
-    //     let errorFlag = false;
-    //     console.log('Starting Gateway...');
-
-    //     return new Promise((resolve, reject) => {
-    //         setTimeout(() => {
-    //             if(!errorFlag){
-    //                 console.log('Started. Listen Connections...');
-    //                 resolve();
-    //             }
-    //         },1000);
-            
-    //         exec(`${SAVEPATH}/gateway_linux_arm`, (error, stdout, stderr) => {
-    //             if (!error) console.log('Started. Listen Connections...');
-    //             console.log(stderr);
-    //             errorFlag = true;
-    //             (async () => {
-    //                 console.log(`--[Start Install Gateway]`);
-    //                 await execAsync(`rm -rf ${SAVEPATH}`);
-    //                 await execAsync(`mkdir ${SAVEPATH}`);
-    //                 console.log('----make dir')
-    //                 console.log('----gateway downloading...')
-    //                 await execAsync(`curl -L -o ${SAVEPATH}/gateway_linux_arm --create-dirs ${DL_LINK}`);
-    //                 console.log('----gateway downloaded')
-    //                 await execAsync(`chmod +x ${SAVEPATH}/gateway_linux_arm`);
-    //                 console.log('----chmod')
-    //                 console.log(`--[Install done]`);
-    //                 this.init();
-    //             })();
-    //         });
-    //     });
-    // }
 
     /**
      * 外部から呼び出し

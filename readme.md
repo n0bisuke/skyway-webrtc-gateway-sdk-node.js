@@ -12,6 +12,7 @@ Unoficial Node.js SDK for [skyway-webrtc-gateway](https://github.com/skyway/skyw
 
 ```
 $ sudo apt update
+$ sudo apt -y upgrade
 $ sudo apt install -y autoconf automake libtool
 $ sudo apt install -y gstreamer1.0-tools gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 ```
@@ -25,13 +26,16 @@ $ make
 $ sudo make install
 ```
 
+### Install GateWay
+
+Dwonload GateWay & Save to `~/.skyway`
+
 ```
-$ cd ../
-$ rm master.zip
-$ rm -rf gst-rpicamsrc-master
+$ curl -L -o ~/.skyway/gateway_linux_arm --create-dirs https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm
+$ chmod +x ~/.skyway/gateway_linux_arm
 ```
 
-## Install
+## 
 
 ```
 $ npm i skyway-gateway
@@ -53,7 +57,7 @@ const options = {
  
 const skyway = new SkyWay(options);
 (async () => {
-    await skyway.startGateWay(`./.skyway`); //skyway-gateway path
+    await skyway.startGateWay(`~/.skyway`); //skyway-gateway path
     const peerData = await skyway.start();
     console.log(peerData);
 
