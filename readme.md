@@ -45,13 +45,22 @@ const SkyWay = require('skyway-gateway');
 
 const options = {
 	apikey: `My SkyWay API Key`,
-	peerid: process.argv[2]
+    peerid: process.argv[2],
+    camera: 'RASPI', // or USB
+    // targetHost: '',
+    // domain: '',
 }
-
+ 
 const skyway = new SkyWay(options);
 (async () => {
-	await skyway.init()
-	await skyway.start()
+    await skyway.init(`./.skyway`); //skyway-gateway path
+    const peerData = await skyway.start();
+    console.log(peerData);
+
+    skyway.dataListen((msg, rinfo) => {
+        const mes = msg.toString('ascii', 0, rinfo.size);
+        console.log(`data len: ${rinfo.size} data: ${mes}`);
+    });
 })();
 ```
 

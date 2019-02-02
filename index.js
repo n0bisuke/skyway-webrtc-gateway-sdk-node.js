@@ -3,8 +3,13 @@
 const axios = require('axios');
 const util = require('util');
 const exec = require('child_process').exec;
-const execAsync = util.promisify(require('child_process').exec);
+const execAsync = util.promisify(exec);
 const dgram = require('dgram');
+
+const GST_CMD ={
+    RASPI: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false',
+    USB: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false'
+}
 
 class SkyWay{
 
@@ -14,50 +19,58 @@ class SkyWay{
         this.peer_id = options.peer_id || process.argv[2];
         this.peer_token = '';
         this.video_id = '';
-        this.video_port = '';
-        this.mc_id = '';
         this.data_id = '';
-        this.cmd = '';
+        this.cmd = GST_CMD[options.camera];
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
         this.udp = {host: '0.0.0.0', port: 10000};
         this.flag = {media: true};
     }
 
-    //Install or Start
-    //WIP
-    init(SAVEPATH = './.skyway'){     
-        const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm`;
-        let errorFlag = false;        
-        console.log('Starting Gateway...');
-
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if(!errorFlag){
+    //GateWay Start WIP
+    init(SWGW_PATH = './.skyway'){
+        exec(`${SWGW_PATH}/gateway_linux_arm`, (error, stdout, stderr) => {
+            //ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
                     console.log('Started. Listen Connections...');
                     resolve();
-                }
-            },1000);
-            
-            exec(`${SAVEPATH}/gateway_linux_arm`, (error, stdout, stderr) => {
-                if (!error) console.log('Started. Listen Connections...');
-                console.log(stderr);
-                errorFlag = true;
-                (async () => {
-                    console.log(`--[Start Install Gateway]`);
-                    await execAsync(`rm -rf ${SAVEPATH}`);
-                    await execAsync(`mkdir ${SAVEPATH}`);
-                    console.log('----make dir')
-                    console.log('----gateway downloading...')
-                    await execAsync(`curl -L -o ${SAVEPATH}/gateway_linux_arm --create-dirs ${DL_LINK}`);
-                    console.log('----gateway downloaded')
-                    await execAsync(`chmod +x ${SAVEPATH}/gateway_linux_arm`);
-                    console.log('----chmod')
-                    console.log(`--[Install done]`);
-                    this.init();
-                })();
+                },1000);
             });
         });
     }
+    // async init(SAVEPATH = './.skyway'){
+    //     const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm`;
+    //     let errorFlag = false;
+    //     console.log('Starting Gateway...');
+
+    //     return new Promise((resolve, reject) => {
+    //         setTimeout(() => {
+    //             if(!errorFlag){
+    //                 console.log('Started. Listen Connections...');
+    //                 resolve();
+    //             }
+    //         },1000);
+            
+    //         exec(`${SAVEPATH}/gateway_linux_arm`, (error, stdout, stderr) => {
+    //             if (!error) console.log('Started. Listen Connections...');
+    //             console.log(stderr);
+    //             errorFlag = true;
+    //             (async () => {
+    //                 console.log(`--[Start Install Gateway]`);
+    //                 await execAsync(`rm -rf ${SAVEPATH}`);
+    //                 await execAsync(`mkdir ${SAVEPATH}`);
+    //                 console.log('----make dir')
+    //                 console.log('----gateway downloading...')
+    //                 await execAsync(`curl -L -o ${SAVEPATH}/gateway_linux_arm --create-dirs ${DL_LINK}`);
+    //                 console.log('----gateway downloaded')
+    //                 await execAsync(`chmod +x ${SAVEPATH}/gateway_linux_arm`);
+    //                 console.log('----chmod')
+    //                 console.log(`--[Install done]`);
+    //                 this.init();
+    //             })();
+    //         });
+    //     });
+    // }
 
     /**
      * 外部から呼び出し
@@ -78,6 +91,7 @@ class SkyWay{
      * Peer関連
      */
     async _create_peer() {
+
         const params = {
             key: this.apikey,
             domain: this.domain,
@@ -179,12 +193,10 @@ class SkyWay{
         try {
             res = await this.create_media(true);
             this.video_id = res.media_id;
-            // this.video_id = (this.video_id) ? this.video_id : res.media_id;
-            console.log(`[${res.port}]`);
-            this.cmd = `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false`;                
+            this.cmd = `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false`;
         } catch (error) {
             console.log('--media-connect--');
-            console.log(error);            
+            console.log(error);         
         }
         
         //data
@@ -216,19 +228,16 @@ class SkyWay{
             redirect_params: {}
         }
 
-        console.log(`[${media_connection_id}/${video_id}]`);
-        console.log(`[Start Watch]: Media Connection`);
+        // console.log(`[${media_connection_id}/${video_id}]`);
+        // console.log(`[Start Watch]: Media Connection`);
         this._watchMediaConnection(media_connection_id); //TODO ここで起動でいいのか分からず
 
         try {
             const res = await this.axios.post(`/media/connections/${media_connection_id}/answer`, params);
             return res.data;
         } catch (error) {
-            console.log('/////');
-            console.log(error);
-            console.log('/////');
-            console.log(error.response.status);
-            console.log(error.response.config.data);
+            // console.log(error.response.status);
+            // console.log(error.response.config.data);
             console.log(error.response.data.command_type);
             console.log(error.response.data.params);
         }
@@ -241,21 +250,14 @@ class SkyWay{
     async _watchMediaConnection(media_connection_id){
         try {
             const res = await this.axios.get(`/media/connections/${media_connection_id}/events`);
-            console.log(`MEDIA_EVENT: ${res.data.event}`);
+            // console.log(`MEDIA_EVENT: ${res.data.event}`);
             if(res.data.event === 'CLOSE'){
-                console.log('---close process 1---');
-                const { stdout, stderr } = await execAsync('killall gst-launch-1.0');
-                console.log('stdout:', stdout);
+                const { stdout, stderr } = await execAsync('killall gst-launch-1.0'); //gstreamerのプロセスをKILLする
                 console.log('stderr:', stderr);
-                
-                console.log('---close process 2---');
-                await this.close_media_connection(media_connection_id);
-                // await this.close_peer();
-                console.log('---close process 3---');
-                // await this._create_peer();
-                console.log('---close process 4---');
-                await this.open();
+                await this.close_media_connection(media_connection_id); //media connectionの破棄
+                await this.open(); //再起動
             }
+
             await this._watchMediaConnection(media_connection_id);
         } catch (error) {
             await this._watchMediaConnection(media_connection_id);
@@ -265,12 +267,11 @@ class SkyWay{
     async _watchPeer(){
         try {
             const res = await this.axios.get(`/peers/${this.peer_id}/events?token=${this.peer_token}`);
-            console.log(`PEER_EVENT: ${res.data.event}`);
+            // console.log(`PEER_EVENT: ${res.data.event}`);
             
             if(res.data.event === 'OPEN') await this.open();
             
             if(res.data.event === 'CALL' && this.flag.media){
-                // this.mc_id = (this.mc_id === '') ? res.data.call_params.media_connection_id : this.mc_id;
                 try {
                     await this.answer(res.data.call_params.media_connection_id, this.video_id);
                 } catch (error)  {
@@ -278,12 +279,10 @@ class SkyWay{
                     await this._watchPeer();
                     return;   
                 }
-                exec(this.cmd, (err, stdout, stderr) => {
-                    if (err) { 
-                        console.log(err);
-                    }
-                    console.log(stdout);
-                });
+
+                const { stdout, stderr } = await execAsync(this.cmd);
+                console.log('stdout:', stdout);
+                console.log('stderr:', stderr);
             }
             
             if(res.data.event === 'CONNECTION'){
@@ -291,17 +290,9 @@ class SkyWay{
                 await this.set_data_redirect(data_connection_id, this.data_id, this.udp.host, this.udp.port)
             }
             
-            if(res.data.event === 'STREAM'){
-                console.log('1')
-            }
-            
-            if(res.data.event === 'CLOSE'){
-                console.log('2');
-            }
-            
-            if(res.data.event === 'ERROR'){
-                console.log('3');
-            }
+            if(res.data.event === 'STREAM'){}
+            if(res.data.event === 'CLOSE'){}
+            if(res.data.event === 'ERROR'){}
             
             await this._watchPeer(); //
         } catch (error) {
