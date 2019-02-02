@@ -6,9 +6,11 @@ const exec = require('child_process').exec;
 const execAsync = util.promisify(exec);
 const dgram = require('dgram');
 
+//USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
+//$PORT$と$IPV4$が後ほど書き換わって実行される
 const GST_CMD ={
-    RASPI: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false',
-    USB: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false'
+    RASPI: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false',
+    USB: 'gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
 }
 
 class SkyWay{
@@ -20,24 +22,25 @@ class SkyWay{
         this.peer_token = '';
         this.video_id = '';
         this.data_id = '';
-        this.cmd = GST_CMD[options.camera];
+        this.gstcmd = GST_CMD[options.camera];
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
         this.udp = {host: '0.0.0.0', port: 10000};
         this.flag = {media: true};
     }
 
     //GateWay Start WIP
-    init(SWGW_PATH = './.skyway'){
+    startGateWay(SWGW_PATH = './.skyway'){
         exec(`${SWGW_PATH}/gateway_linux_arm`, (error, stdout, stderr) => {
             //ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
                     console.log('Started. Listen Connections...');
                     resolve();
-                },1000);
+                },2000);
             });
         });
     }
+
     // async init(SAVEPATH = './.skyway'){
     //     const DL_LINK = `https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm`;
     //     let errorFlag = false;
@@ -193,7 +196,7 @@ class SkyWay{
         try {
             res = await this.create_media(true);
             this.video_id = res.media_id;
-            this.cmd = `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=${res.port} host=${res.ip_v4} sync=false`;
+            this.gstcmd = this.gstcmd.replace(`$PORT$`, res.port).replace(`$IPV4$`,res.ip_v4); //Gstreamerの起動オプションにPOSTとIPV4を書き換え
         } catch (error) {
             console.log('--media-connect--');
             console.log(error);         
@@ -280,7 +283,7 @@ class SkyWay{
                     return;   
                 }
 
-                const { stdout, stderr } = await execAsync(this.cmd);
+                const { stdout, stderr } = await execAsync(this.gstcmd);
                 console.log('stdout:', stdout);
                 console.log('stderr:', stderr);
             }
