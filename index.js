@@ -20,7 +20,11 @@ class SkyWay{
         this.domain = options.domain || 'localhost';
         this.peer_id = options.peer_id || process.argv[2];
         this.peer_token = '';
-        this.video_id = '';
+        this.video = {
+            ip_v4: '',
+            media_id: '',
+            port: '',
+        }; //Video Params
         this.data_id = '';
         this.gstcmd = GST_CMD[options.camera];
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
@@ -156,8 +160,9 @@ class SkyWay{
         //media
         try {
             res = await this.create_media(true);
-            this.video_id = res.media_id;
-            this.gstcmd = this.gstcmd.replace(`$PORT$`, res.port).replace(`$IPV4$`,res.ip_v4); //Gstreamerの起動オプションにPOSTとIPV4を書き換え
+            this.video.media_id = res.media_id;
+            this.video.ip_v4 = res.ip_v4;
+            this.video.port = res.port;            
         } catch (error) {
             console.log('--media-connect--');
             console.log(error);         
@@ -214,7 +219,7 @@ class SkyWay{
     async _watchMediaConnection(media_connection_id){
         try {
             const res = await this.axios.get(`/media/connections/${media_connection_id}/events`);
-            // console.log(`MEDIA_EVENT: ${res.data.event}`);
+            console.log(`MEDIA_EVENT: ${res.data.event}`);
             if(res.data.event === 'CLOSE'){
                 const { stdout, stderr } = await execAsync('killall gst-launch-1.0'); //gstreamerのプロセスをKILLする
                 console.log('stderr:', stderr);
@@ -231,22 +236,26 @@ class SkyWay{
     async _watchPeer(){
         try {
             const res = await this.axios.get(`/peers/${this.peer_id}/events?token=${this.peer_token}`);
-            // console.log(`PEER_EVENT: ${res.data.event}`);
+            console.log(`PEER_EVENT: ${res.data.event}`);
             
             if(res.data.event === 'OPEN') await this.open();
             
             if(res.data.event === 'CALL' && this.flag.media){
                 try {
-                    await this.answer(res.data.call_params.media_connection_id, this.video_id);
+                    await this.answer(res.data.call_params.media_connection_id, this.video.media_id);
+
+                    //Gstreamerの起動オプションにPOSTとIPV4を書き換え
+                    const gstcmd = this.gstcmd.replace(`$PORT$`, this.video.port).replace(`$IPV4$`, this.video.ip_v4);
+
+                    //実行
+                    const { stdout, stderr } = await execAsync(gstcmd);
+                    console.log('stdout:', stdout);
+                    console.log('stderr:', stderr);
                 } catch (error)  {
                     console.log(error);
                     await this._watchPeer();
                     return;   
                 }
-
-                const { stdout, stderr } = await execAsync(this.gstcmd);
-                console.log('stdout:', stdout);
-                console.log('stderr:', stderr);
             }
             
             if(res.data.event === 'CONNECTION'){
