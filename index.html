@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>SkyWay RasPi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div id="app">
+        <input type="text"  v-model="peerId" />
+        <button @click="connect" >call</button>
+        <br />
+
+        <input type="text" v-model="message" />
+        <button @click="sendMessage">send message</button>
+        <br />
+
+        <video id="remote_video" muted="true" autoplay playsinline="true"></video>
+    </div>
+
+    <script src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="public/app.js"></script>
+</body>
+</html>
