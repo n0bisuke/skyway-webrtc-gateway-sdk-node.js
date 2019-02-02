@@ -5,7 +5,10 @@ const util = require('util');
 const exec = require('child_process').exec;
 const execAsync = util.promisify(exec);
 const dgram = require('dgram');
+
 const Peer = require('./libs/peer');
+const Media = require('./libs/media');
+const Data = require('./libs/data');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
@@ -33,19 +36,22 @@ class SkyWay{
         this.flag = {media: true};
 
         this.peer = new Peer(this.axios);
+        this.media = new Media(this.axios);
+        this.data = new Data(this.axios);
     }
-
-    //GateWay Start WIP
+    
+    /**
+     * 外部から呼び出し
+     * */
+    //GateWay Start
     startGateWay(SWGW_PATH = '~/.skyway'){
         exec(`${SWGW_PATH}/gateway_linux_arm`, (error, stdout, stderr) => {
-            //ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
+            //[WIP]ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
             return new Promise((resolve, reject) => setTimeout(() => resolve(),2000));
         });
     }
 
-    /**
-     * 外部から呼び出し
-     * */
+    //処理スタート
     async start(options = {media: true}) {
         this.flag.media = options.media; //メディアを利用するかどうかのフラグ
         // const peer_data = await this._create_peer();
@@ -64,77 +70,22 @@ class SkyWay{
         return peer_data;
     }
 
+    //データやりとり
     async dataListen(func){
         const sock = dgram.createSocket("udp4", func);
         sock.bind(this.udp.port, this.udp.host);
     }
     
-    /***
-     * media関連
-     */
-    async create_media(is_video) {
-        const params = {is_video: is_video}
-        try {
-            const res = await this.axios.post(`/media`, params);
-            return res.data;
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-     //http://35.200.46.204/#/3.media/media_connection_close
-     //MediaConnectionを解放します。このMediaConnection以外で利用されていないMediaがあれば同時にクローズします
-    async close_media_connection(media_connection_id){
-        try {
-            const res = await this.axios.delete(`/media/connections/${media_connection_id}`);
-            return res.data;   
-        } catch (error) {
-            console.log('---close media connection---');
-            console.log(error);
-        }
-    }
-
-    /**
-     * 
-     * データ関連
-     */
-    async create_data(){
-        try {
-            const res = await this.axios.post(`/data`, {});
-            return res.data;   
-        } catch (error) {
-
-        } 
-    }
-
-    async set_data_redirect(data_connection_id, data_id, redirect_addr, redirect_port) {
-        const params = {
-            feed_params: {
-                data_id: data_id,
-            },
-            redirect_params: {
-                ip_v4: redirect_addr,
-                port: redirect_port,
-            },
-        }
-
-        try {
-            const res = await this.axios.put(`/data/connections/${data_connection_id}`, params);
-            return res.data;   
-        } catch (error) {
-            console.log(error);
-        } 
-    }
-
     /**
      * メイン処理
+     * open & answwer
      */
-    async open() {
+    async _open() {
         let res = {};
         
         //media
         try {
-            res = await this.create_media(true);
+            res = await this.media.create_media(true);
             this.video.media_id = res.media_id;
             this.video.ip_v4 = res.ip_v4;
             this.video.port = res.port;            
@@ -153,7 +104,7 @@ class SkyWay{
         }
     };
 
-    async answer(media_connection_id, video_id) {
+    async _answer(media_connection_id, video_id) {
         const constraints = {
             video: true,
             videoReceiveEnabled: false,
@@ -180,17 +131,16 @@ class SkyWay{
             const res = await this.axios.post(`/media/connections/${media_connection_id}/answer`, params);
             return res.data;
         } catch (error) {
-            // console.log(error.response.status);
-            // console.log(error.response.config.data);
             console.log(error.response.data.command_type);
             console.log(error.response.data.params);
         }
     }
 
-
     /**
      * ロングポーリングで監視
      * */
+    
+    //mediaのイベント監視
     async _watchMediaConnection(media_connection_id){
         try {
             const res = await this.axios.get(`/media/connections/${media_connection_id}/events`);
@@ -198,8 +148,8 @@ class SkyWay{
             if(res.data.event === 'CLOSE'){
                 const { stdout, stderr } = await execAsync('killall gst-launch-1.0'); //gstreamerのプロセスをKILLする
                 console.log('stderr:', stderr);
-                await this.close_media_connection(media_connection_id); //media connectionの破棄
-                await this.open(); //再起動
+                await this.media.close_media_connection(media_connection_id); //media connectionの破棄
+                await this._open(); //再起動
             }
 
             await this._watchMediaConnection(media_connection_id);
@@ -208,16 +158,17 @@ class SkyWay{
         }
     }
 
+    //peerのイベント監視
     async _watchPeer(){
         try {
             const res = await this.axios.get(`/peers/${this.peer_id}/events?token=${this.peer_token}`);
             console.log(`PEER_EVENT: ${res.data.event}`);
             
-            if(res.data.event === 'OPEN') await this.open();
+            if(res.data.event === 'OPEN') await this._open();
             
             if(res.data.event === 'CALL' && this.flag.media){
                 try {
-                    await this.answer(res.data.call_params.media_connection_id, this.video.media_id);
+                    await this._answer(res.data.call_params.media_connection_id, this.video.media_id);
 
                     //Gstreamerの起動オプションにPOSTとIPV4を書き換え
                     const gstcmd = this.gstcmd.replace(`$PORT$`, this.video.port).replace(`$IPV4$`, this.video.ip_v4);
@@ -235,7 +186,7 @@ class SkyWay{
             
             if(res.data.event === 'CONNECTION'){
                 const data_connection_id = res.data.data_params.data_connection_id;
-                await this.set_data_redirect(data_connection_id, this.data_id, this.udp.host, this.udp.port)
+                await this.data.set_data_redirect(data_connection_id, this.data_id, this.udp.host, this.udp.port)
             }
             
             if(res.data.event === 'STREAM'){}
@@ -247,6 +198,7 @@ class SkyWay{
             await this._watchPeer(); //
         }
     }
+
 }
 
 module.exports = SkyWay;
