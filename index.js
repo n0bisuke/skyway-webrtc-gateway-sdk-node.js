@@ -5,6 +5,7 @@ const util = require('util');
 const exec = require('child_process').exec;
 const execAsync = util.promisify(exec);
 const dgram = require('dgram');
+const Peer = require('./libs/peer');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
@@ -30,6 +31,8 @@ class SkyWay{
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
         this.udp = {host: '0.0.0.0', port: 10000};
         this.flag = {media: true};
+
+        this.peer = new Peer(this.axios);
     }
 
     //GateWay Start WIP
@@ -45,7 +48,18 @@ class SkyWay{
      * */
     async start(options = {media: true}) {
         this.flag.media = options.media; //メディアを利用するかどうかのフラグ
-        const peer_data = await this._create_peer();
+        // const peer_data = await this._create_peer();
+        const params = {
+            key: this.apikey,
+            domain: this.domain,
+            turn: false,
+            peer_id: this.peer_id,
+        }
+
+        const peer_data = await this.peer.create_peer(params);
+        this.peer_token = peer_data.token; //Peer Tokenをセット
+        this.peer_id = peer_data.peer_id; //Peer IDをセット
+
         this._watchPeer(); //PEERの状態を監視
         return peer_data;
     }
@@ -55,45 +69,6 @@ class SkyWay{
         sock.bind(this.udp.port, this.udp.host);
     }
     
-    /**
-     * Peer関連
-     */
-    async _create_peer() {
-
-        const params = {
-            key: this.apikey,
-            domain: this.domain,
-            turn: false,
-            peer_id: this.peer_id,
-        }
-
-        try {
-            const res = await this.axios.post(`/peers`, params); //PEERを作成
-            this.peer_token = res.data.params.token; //Peer Tokenをセット
-            this.peer_id = res.data.params.peer_id; //Peer IDをセット
-            return res.data.params;
-        } catch (error) {
-            if(error.response && error.response.data.command_type === 'PEERS_CREATE'){
-                console.log('PEERを作成することが出来ませんでした。');
-                const peer_id = JSON.parse(error.response.config.data).peer_id;
-                console.log(`PEER_ID"${peer_id}"は既に使われてる可能性があります。`);
-            }else{
-                console.log('create peer error!!!');
-                // console.log(error);
-            }
-        }
-    }
-
-    async close_peer(){
-        try {
-            const res = await this.axios.delete(`/peers/${this.peer_id}?token=${this.peer_token}`);
-            return res.data;   
-        } catch (error) {
-            console.log(error.response.data.command_type);
-            console.log(error.response.data.params);
-        }
-    }
-
     /***
      * media関連
      */
