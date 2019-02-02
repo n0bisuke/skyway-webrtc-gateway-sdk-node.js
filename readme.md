@@ -35,9 +35,10 @@ $ curl -L -o ~/.skyway/gateway_linux_arm --create-dirs https://github.com/skyway
 $ chmod +x ~/.skyway/gateway_linux_arm
 ```
 
-## 
+## Install this Module
 
 ```
+$ npm init -y
 $ npm i skyway-gateway
 ```
 
@@ -68,9 +69,17 @@ const skyway = new SkyWay(options);
 })();
 ```
 
+```bash
+$ node app.js hogehoge
 ```
-node app.js hogehoge
-```
+
+* you can test this page
+
+`https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/`
+
+EX) `https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/#7f92eda4-ece8-4e8c-b20b-xxxxxxxx`
+
+## other
 
 frontend sample
 
