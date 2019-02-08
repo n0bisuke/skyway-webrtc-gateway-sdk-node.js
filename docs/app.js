@@ -1,11 +1,20 @@
 'use strict';
 
-const app = new Vue({
+const router = new VueRouter({
+    mode: 'history',
+    routes: []
+});
+
+const vm =  new Vue({
+    router,
     el: '#app',
+
     data: {
+        APIKEY: '',
         peerId: '',
         message: ''
     },
+
     methods: {
         connect: function(){
             const call = this.peer.call(this.peerId, null, {videoReceiveEnabled: true });
@@ -24,14 +33,17 @@ const app = new Vue({
     },
 
     mounted: async function () {
-        if(!location.hash){
-            alert('keyを入れてください');
+        this.APIKEY = this.$route.query.apikey;
+        this.peerId = this.$route.query.peerid;
+
+        if(this.APIKEY === '' || this.peerId === ''){
+            alert('API KEYとPeerIDを指定して下さい。 \n /?apikey=xxxx&peerid=xxxx');
             return;
         }
-        const APIKEY = location.hash.replace(/#/g ,'');
-        this.peer = new Peer({key: APIKEY,debug: 3});
+
+        this.peer = new Peer({key: this.APIKEY,debug: 3});
         this.peer.on('open', () => {
-            this.peer.listAllPeers(peers => console.log(peers));
+            this.peer.listAllPeers(peers => console.log(peers))
         });
         this.peer.on('error', (err) => alert(err.message));
         this.peer.on('close', () => {
