@@ -75,9 +75,9 @@ $ node app.js hogehoge
 
 * you can test this page
 
-`https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/`
+`https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/?apikey=<APIKEY>&peerid=<PeerID>`
 
-EX) `https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/#7f92eda4-ece8-4e8c-b20b-xxxxxxxx`
+EX) `https://n0bisuke.github.io/skyway-webrtc-gateway-sdk-node.js/?apikey=7f92eda4-ece8-4e8c-b20b-xxxxxxx&peerid=hogehoge`
 
 ## other
 
