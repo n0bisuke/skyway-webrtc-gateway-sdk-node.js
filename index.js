@@ -6,9 +6,9 @@ const exec = require('child_process').exec;
 const execAsync = util.promisify(exec);
 const dgram = require('dgram');
 
-const Peer = require('./peer');
-const Media = require('./media');
-const Data = require('./data');
+const Peer = require('./libs/peer');
+const Media = require('./libs/media');
+const Data = require('./libs/data');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
