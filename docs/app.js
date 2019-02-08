@@ -47,9 +47,9 @@ const vm =  new Vue({
         });
         this.peer.on('error', (err) => alert(err.message));
         this.peer.on('close', () => {
-            // this.peer.destroy();
+            this.peer.destroy();
             this.peer.disconnect();
-            alert();
+            // alert();
         });
     }
 });
