@@ -6,9 +6,9 @@ const exec = require('child_process').exec;
 const execAsync = util.promisify(exec);
 const dgram = require('dgram');
 
-const Peer = require('./libs/peer');
-const Media = require('./libs/media');
-const Data = require('./libs/data');
+const Peer = require('./peer');
+const Media = require('./media');
+const Data = require('./data');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
@@ -32,7 +32,7 @@ class SkyWay{
         this.data_id = '';
         this.gstcmd = GST_CMD[options.camera];
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
-        this.udp = {host: '0.0.0.0', port: 10000};
+        this.udp = {host: '127.0.0.1', port: 10000};
         this.flag = {media: true};
 
         this.peer = new Peer(this.axios);
@@ -83,24 +83,19 @@ class SkyWay{
     async _open() {
         let res = {};
         
-        //media
         try {
+            //media
             res = await this.media.create_media(true);
             this.video.media_id = res.media_id;
             this.video.ip_v4 = res.ip_v4;
-            this.video.port = res.port;            
+            this.video.port = res.port;
+            //data
+            res = await this.axios.post(`/data`, {});
+            console.log(res.data);
+            this.data_id = res.data.data_id;
         } catch (error) {
             console.log('--media-connect--');
             console.log(error);         
-        }
-        
-        //data
-        try {
-            res = await this.axios.post(`/data`, {});
-            this.data_id = res.data_id;            
-        } catch (error) {
-            console.log('--data-connect--');
-            console.log(error);
         }
     };
 
@@ -125,10 +120,9 @@ class SkyWay{
 
         // console.log(`[${media_connection_id}/${video_id}]`);
         // console.log(`[Start Watch]: Media Connection`);
-        this._watchMediaConnection(media_connection_id); //TODO ここで起動でいいのか分からず
-
         try {
             const res = await this.axios.post(`/media/connections/${media_connection_id}/answer`, params);
+            this._watchMediaConnection(media_connection_id); //TODO ここで起動でいいのか分からず
             return res.data;
         } catch (error) {
             console.log(error.response.data.command_type);
@@ -147,7 +141,7 @@ class SkyWay{
             console.log(`MEDIA_EVENT: ${res.data.event}`);
             if(res.data.event === 'CLOSE'){
                 const { stdout, stderr } = await execAsync('killall gst-launch-1.0'); //gstreamerのプロセスをKILLする
-                console.log('stderr:', stderr);
+                console.log('--CLOSE--',stdout,stderr);
                 await this.media.close_media_connection(media_connection_id); //media connectionの破棄
                 await this._open(); //再起動
             }
@@ -162,25 +156,27 @@ class SkyWay{
     async _watchPeer(){
         try {
             const res = await this.axios.get(`/peers/${this.peer_id}/events?token=${this.peer_token}`);
-            console.log(`PEER_EVENT: ${res.data.event}`);
-            
+            console.log(res.data.event);
             if(res.data.event === 'OPEN') await this._open();
-            
             if(res.data.event === 'CALL' && this.flag.media){
                 try {
                     await this._answer(res.data.call_params.media_connection_id, this.video.media_id);
 
                     //Gstreamerの起動オプションにPOSTとIPV4を書き換え
-                    const gstcmd = this.gstcmd.replace(`$PORT$`, this.video.port).replace(`$IPV4$`, this.video.ip_v4);
+                    const gstcmd = this.gstcmd
+                                    .replace(`$PORT$`, this.video.port)
+                                    .replace(`$IPV4$`, this.video.ip_v4);
 
-                    //実行
-                    const { stdout, stderr } = await execAsync(gstcmd);
-                    console.log('stdout:', stdout);
-                    console.log('stderr:', stderr);
+                    //実行 - execAsync()を利用すると上手くCONNECTIONが発火しない
+                    exec(gstcmd, (err, stdout, stderr) => {
+                        if (err || stderr) console.log(err,stderr);
+                        console.log(stdout);
+                    });
+
                 } catch (error)  {
                     console.log(error);
-                    await this._watchPeer();
-                    return;   
+                    this._watchPeer();
+                    return;
                 }
             }
             
@@ -192,10 +188,11 @@ class SkyWay{
             if(res.data.event === 'STREAM'){}
             if(res.data.event === 'CLOSE'){}
             if(res.data.event === 'ERROR'){}
-            
-            await this._watchPeer(); //
+            await this._watchPeer();
+
         } catch (error) {
-            await this._watchPeer(); //
+            console.log(error);
+            await this._watchPeer();
         }
     }
 
