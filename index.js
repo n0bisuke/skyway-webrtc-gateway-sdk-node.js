@@ -12,9 +12,14 @@ const Data = require('./libs/data');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
-const GST_CMD = {
-    RASPI: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false',
-    USB: 'gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
+const GST_CMD ={
+    RASPI: {
+        H264: `gst-launch-1.0 -e rpicamsrc ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! x264enc bitrate=8000 pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
+        VP8: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
+    },
+    USB: {
+        VP8: 'gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
+    }
 }
 
 class SkyWay{
@@ -30,7 +35,8 @@ class SkyWay{
             port: '',
         }; //Video Params
         this.data_id = '';
-        this.gstcmd = GST_CMD[options.camera];
+        this.gstcmd = GST_CMD[options.camera][options.codec];
+        console.log(this.gstcmd);
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
         this.udp = {host: '127.0.0.1', port: 10000};
         this.flag = {media: true};
@@ -107,9 +113,9 @@ class SkyWay{
             audioReceiveEnabled: false,
             video_params: {
                 band_width: 1500,
-                codec: "VP8",
+                codec: 'H264', // VP8 or H264
                 media_id: video_id,
-                payload_type: 96,
+                payload_type: 100, //96 or 100
             }
         }
 
@@ -175,6 +181,7 @@ class SkyWay{
 
                 } catch (error)  {
                     console.log(error);
+                    console.log(`--CALL ERROR---`);
                     this._watchPeer();
                     return;
                 }
@@ -192,6 +199,7 @@ class SkyWay{
 
         } catch (error) {
             console.log(error);
+            console.log(`--LONG POLLING ERROR---`);
             await this._watchPeer();
         }
     }
