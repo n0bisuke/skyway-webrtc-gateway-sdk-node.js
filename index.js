@@ -14,7 +14,8 @@ const Data = require('./libs/data');
 //$PORT$と$IPV4$が後ほど書き換わって実行される
 const GST_CMD ={
     RASPI: {
-        H264: `gst-launch-1.0 -e rpicamsrc ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! x264enc bitrate=8000 pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
+        H264: `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! x264enc bitrate=8000 pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
+        OPENH264: `gst-launch-1.0 -e rpicamsrc ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! x264enc bitrate=8000 pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
         VP8: 'gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
     },
     USB: {
@@ -36,7 +37,6 @@ class SkyWay{
         }; //Video Params
         this.data_id = '';
         this.gstcmd = GST_CMD[options.camera][options.codec];
-        console.log(this.gstcmd);
         this.axios = axios.create({baseURL: options.targetHost || `http://127.0.0.1:8000`});
         this.udp = {host: '127.0.0.1', port: 10000};
         this.flag = {media: true};
