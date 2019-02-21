@@ -33,8 +33,8 @@ const vm =  new Vue({
     },
 
     mounted: async function () {
-        this.APIKEY = this.$route.query.apikey;
-        this.peerId = this.$route.query.peerid;
+        this.APIKEY = (this.APIKEY === '') ? this.$route.query.apikey : this.APIKEY;
+        this.peerId = (this.peerId === '') ? this.$route.query.peerid : this.peerId;
 
         if(this.APIKEY === '' || this.peerId === ''){
             alert('API KEYとPeerIDを指定して下さい。 \n /?apikey=xxxx&peerid=xxxx');
