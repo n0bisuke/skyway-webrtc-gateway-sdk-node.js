@@ -49,6 +49,9 @@ const vm =  new Vue({
             this.peer.listAllPeers(peers => console.log(peers))
         });
         this.peer.on('error', (err) => alert(err.message));
+        this.peer.on('disconnected', () => {
+            alert(err.message);
+        });
         this.peer.on('close', () => {
             this.peer.destroy();
             this.peer.disconnect();

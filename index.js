@@ -10,23 +10,6 @@ const Peer = require('./libs/peer');
 const Media = require('./libs/media');
 const Data = require('./libs/data');
 
-//プロセス終了ハンドリング
-process.on('SIGINT', async () => {
-    //終了処理…
-    console.log('シャットダウン');
-    try {
-        await execAsync('killall gateway_linux_arm'); //gatewayのプロセスをKILLする
-        process.exit(1); //正常終了
-    } catch (error) {
-        process.exit(0); //異常終了   
-    }
-});
-
-process.on('exit', () => {
-    console.log(`プロセスを終了します。 - Exit`);
-    process.exit(1); //正常終了
-});
-
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
 const GST_CMD ={
@@ -61,6 +44,23 @@ class SkyWay{
         this.peer = new Peer(this.axios);
         this.media = new Media(this.axios);
         this.data = new Data(this.axios);
+
+        //プロセス終了ハンドリング
+        process.on('SIGINT', async () => {
+            //終了処理…
+            console.log('シャットダウン');
+            try {
+                await execAsync('killall gateway_linux_arm'); //gatewayのプロセスをKILLする
+                process.exit(1); //正常終了
+            } catch (error) {
+                process.exit(0); //異常終了   
+            }
+        });
+
+        process.on('exit', () => {
+            console.log(`プロセスを終了します。 - Exit`);
+            process.exit(1); //正常終了
+        });
     }
     
     /**
