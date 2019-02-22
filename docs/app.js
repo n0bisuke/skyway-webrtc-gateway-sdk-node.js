@@ -12,15 +12,18 @@ const vm =  new Vue({
     data: {
         APIKEY: '',
         peerId: '',
-        message: ''
+        message: '',
+        statusMessage: '', //表示用
     },
 
     methods: {
         connect: function(){
+            this.statusMessage = '接続します。';
             const call = this.peer.call(this.peerId, null, {videoReceiveEnabled: true });
             call.on('stream', (stream) => {
                 document.querySelector("#remote_video").srcObject = stream;
                 console.log(call);
+                this.statusMessage = '映像を待機中です。少々お待ちください。';
             });
 
             this.connection = this.peer.connect(this.peerId, {serialization: "none"});

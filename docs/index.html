@@ -5,11 +5,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>SkyWay RasPi</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+    [v-cloak] {
+        display:none;
+    }
+    </style>
 </head>
 <body>
     <div id="app">
         <!-- <input type="text"  v-model="peerId" /> -->
         <button @click="connect" >call!</button>
+        <p v-cloak>{{statusMessage}}</p>
         <br />
 
         <input type="text" v-model="message" />

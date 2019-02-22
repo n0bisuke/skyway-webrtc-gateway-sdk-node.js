@@ -178,11 +178,16 @@ class SkyWay{
                     //実行 - execAsync()を利用すると上手くCONNECTIONが発火しない
                     exec(gstcmd, (err, stdout, stderr) => {
                         if (err || stderr) {
-                            console.log(`CODE${err.code}: GStreamerが起動出来ませんでした。`);
-                            console.log(`Raspberry Piとカメラの接触が悪かったり、接続されてない可能性があります。`);
-                            console.log(`プロセスを終了します。 - Exit`);
-                            process.exit(1);
-                            return;
+                            if(err.code === 255){
+                                console.log(`CODE${err.code}: GStreamerが起動出来ませんでした。`);
+                                console.log(`Raspberry Piとカメラの接触が悪かったり、接続されてない可能性があります。`);
+                                console.log(`プロセスを終了します。 - Exit`);
+                                process.exit(1);
+                                return;
+                            }else if(err.code === 143){
+                                console.log(`CODE${err.code}: ${err}`);
+                                console.log(`クライアント側との接続が切れました。再起動します。`);
+                            }
                         }
                         console.log(stdout);
                     });
@@ -208,6 +213,7 @@ class SkyWay{
         } catch (error) {
             console.log(error);
             console.log(`--LONG POLLING ERROR---`);
+            console.log(error.response);
             await this._watchPeer();
         }
     }
