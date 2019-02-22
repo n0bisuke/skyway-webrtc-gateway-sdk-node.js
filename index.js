@@ -10,7 +10,22 @@ const Peer = require('./libs/peer');
 const Media = require('./libs/media');
 const Data = require('./libs/data');
 
-process.on('exit', () => process.exit(1)); //正常終了
+//プロセス終了ハンドリング
+process.on('SIGINT', async () => {
+    //終了処理…
+    console.log('シャットダウン');
+    try {
+        await execAsync('killall gateway_linux_arm'); //gatewayのプロセスをKILLする
+        process.exit(1); //正常終了
+    } catch (error) {
+        process.exit(0); //異常終了   
+    }
+});
+
+process.on('exit', () => {
+    console.log(`プロセスを終了します。 - Exit`);
+    process.exit(1); //正常終了
+});
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
@@ -55,7 +70,7 @@ class SkyWay{
     startGateWay(SWGW_PATH = '~/.skyway'){
         exec(`${SWGW_PATH}/gateway_linux_arm`, (error, stdout, stderr) => {
             //[WIP]ほんとはasync/awaitしたいけどGateWayが起動後のメッセージなどがないので起動したかどうかが判断できない
-            return new Promise((resolve, reject) => setTimeout(() => resolve(),2000));
+            return new Promise((resolve, reject) => setTimeout(() => resolve(),3000));
         });
     }
 
@@ -69,13 +84,18 @@ class SkyWay{
             turn: false,
             peer_id: this.peer_id,
         }
+        try {
+            const peer_data = await this.peer.create_peer(params);
+            this.peer_token = peer_data.token; //Peer Tokenをセット
+            this.peer_id = peer_data.peer_id; //Peer IDをセット
+    
+            this._watchPeer(); //PEERの状態を監視
+            return peer_data;            
+        } catch (error) {
+            console.log(error);
+            process.exit(1);
+        }
 
-        const peer_data = await this.peer.create_peer(params);
-        this.peer_token = peer_data.token; //Peer Tokenをセット
-        this.peer_id = peer_data.peer_id; //Peer IDをセット
-
-        this._watchPeer(); //PEERの状態を監視
-        return peer_data;
     }
 
     //データやりとり
@@ -181,7 +201,6 @@ class SkyWay{
                             if(err.code === 255){
                                 console.log(`CODE${err.code}: GStreamerが起動出来ませんでした。`);
                                 console.log(`Raspberry Piとカメラの接触が悪かったり、接続されてない可能性があります。`);
-                                console.log(`プロセスを終了します。 - Exit`);
                                 process.exit(1);
                                 return;
                             }else if(err.code === 143){
@@ -211,9 +230,8 @@ class SkyWay{
             await this._watchPeer();
 
         } catch (error) {
-            console.log(error);
-            console.log(`--LONG POLLING ERROR---`);
-            console.log(error.response);
+            console.log(`[${error.response.data.command_type}]: ${error.response.data.params.errors[0].message}`);
+            console.log(`RE CONNECTING...`);
             await this._watchPeer();
         }
     }

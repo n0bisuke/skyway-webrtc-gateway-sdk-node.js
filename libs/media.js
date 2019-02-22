@@ -10,7 +10,7 @@ class Media {
             const res = await this.axios.post(`/media`, params);
             return res.data;
         } catch (error) {
-            console.log(error)
+            throw new Error(error);
         }
     }
 
@@ -21,8 +21,7 @@ class Media {
             const res = await this.axios.delete(`/media/connections/${media_connection_id}`);
             return res.data;   
         } catch (error) {
-            console.log('---close media connection---');
-            console.log(error);
+            throw new Error(`---close media connection---`,error);
         }
     }
 

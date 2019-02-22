@@ -27,9 +27,9 @@ class Data {
 
         try {
             const res = await this.axios.put(`/data/connections/${data_connection_id}`, params);
-            return res.data;   
+            return res.data;
         } catch (error) {
-            console.log(error);
+            throw new Error(error);
         } 
     }
 
