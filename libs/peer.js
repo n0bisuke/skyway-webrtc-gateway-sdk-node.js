@@ -11,11 +11,10 @@ class Peer {
             return res.data.params;
         } catch (error) {
             if(error.response && error.response.data.command_type === 'PEERS_CREATE'){
-                console.log('PEERを作成することが出来ませんでした。');
                 const peer_id = JSON.parse(error.response.config.data).peer_id;
-                console.log(`PEER_ID"${peer_id}"は既に使われてる可能性があります。`);
+                throw new Error(`PEERを作成することが出来ませんでした。PEER_ID"${peer_id}"は既に使われてる可能性があります。`);
             }else{
-                console.log('create peer error!!!');
+                throw new Error(`Create Peer Error! 再度Node.jsプロセスを起動してみて下さい。`);
             }
         }
     }
@@ -25,7 +24,7 @@ class Peer {
             const res = await this.axios.delete(`/peers/${peer_id}?token=${peer_token}`);
             return res.data;   
         } catch (error) {
-            console.log(error);
+            throw new Error(error);
         }      
     }
 }

@@ -52,6 +52,7 @@ const vm =  new Vue({
         this.peer.on('close', () => {
             this.peer.destroy();
             this.peer.disconnect();
+            this.statusMessage = 'サーバーとの接続が切れました。';
             // alert();
         });
     }

@@ -1,6 +1,6 @@
 {
   "name": "skyway-gateway",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "SkyWay GateWay SDK(Unoficial) for Node.js",
   "main": "index.js",
   "scripts": {
