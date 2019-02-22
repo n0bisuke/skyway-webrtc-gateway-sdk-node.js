@@ -10,6 +10,8 @@ const Peer = require('./libs/peer');
 const Media = require('./libs/media');
 const Data = require('./libs/data');
 
+process.on('exit', () => process.exit(1)); //正常終了
+
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
 const GST_CMD ={
@@ -175,7 +177,13 @@ class SkyWay{
 
                     //実行 - execAsync()を利用すると上手くCONNECTIONが発火しない
                     exec(gstcmd, (err, stdout, stderr) => {
-                        if (err || stderr) console.log(err,stderr);
+                        if (err || stderr) {
+                            console.log(`CODE${err.code}: GStreamerが起動出来ませんでした。`);
+                            console.log(`Raspberry Piとカメラの接触が悪かったり、接続されてない可能性があります。`);
+                            console.log(`プロセスを終了します。 - Exit`);
+                            process.exit(1);
+                            return;
+                        }
                         console.log(stdout);
                     });
 
