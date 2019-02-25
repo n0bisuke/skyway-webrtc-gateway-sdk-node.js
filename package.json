@@ -1,10 +1,11 @@
 {
   "name": "skyway-gateway",
-  "version": "0.2.12",
+  "version": "0.2.15",
   "description": "SkyWay GateWay SDK(Unoficial) for Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "curl -L -o ~/.skyway/gateway_linux_arm --create-dirs https://github.com/skyway/skyway-webrtc-gateway/releases/download/0.0.4/gateway_linux_arm && chmod +x ~/.skyway/gateway_linux_arm"
   },
   "keywords": [
     "SkyWay",
