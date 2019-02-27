@@ -12,7 +12,7 @@ const Data = require('./libs/data');
 
 //USBカメラとラズパイのカメラでそれぞれGstreamerの起動オプションが異なる
 //$PORT$と$IPV4$が後ほど書き換わって実行される
-const GST_CMD ={
+const GST_CMD = {
     RASPI: {
         H264: `gst-launch-1.0 -e rpicamsrc ! video/x-raw,width=640,height=480 ! videoconvert ! x264enc pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay pt=100 config-interval=3 ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
         OPENH264: `gst-launch-1.0 -e rpicamsrc ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! x264enc bitrate=8000 pass=quant quantizer=25 rc-lookahead=0 sliced-threads=true speed-preset=superfast sync-lookahead=0 tune=zerolatency ! rtph264pay ! udpsink port=$PORT$ host=$IPV4$ sync=false`,
@@ -22,6 +22,8 @@ const GST_CMD ={
         VP8: 'gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,width=640,height=480,format=I420 ! videoconvert ! vp8enc deadline=1  ! rtpvp8pay pt=96 ! udpsink port=$PORT$ host=$IPV4$ sync=false'
     }
 }
+
+const RASP_CAMERA_CMD = `raspistill -o $FILENAME$`;
 
 class SkyWay{
 
@@ -61,6 +63,17 @@ class SkyWay{
             console.log(`プロセスを終了します。 - Exit`);
             process.exit(1); //正常終了
         });
+    }
+
+    async snapshot(FILENAME = 'output.png'){
+        const rasp_camera_cmd = RASP_CAMERA_CMD.replace(`$FILENAME$`, FILENAME)
+
+        try {
+            await execAsync(rasp_camera_cmd);
+            return true;
+        } catch (error) {
+            
+        }
     }
     
     /**
