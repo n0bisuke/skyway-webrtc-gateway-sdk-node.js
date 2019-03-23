@@ -30,7 +30,7 @@ class SkyWay{
     constructor(options){
         this.apikey = options.apikey; //SkyWay API Key
         this.domain = options.domain || 'localhost';
-        this.peer_id = options.peer_id || process.argv[2];
+        this.peer_id = options.peer_id;
         this.peer_token = '';
         this.video = {
             ip_v4: '',
